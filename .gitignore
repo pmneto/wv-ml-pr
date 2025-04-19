@@ -1,0 +1,47 @@
+# Arquivos temporários
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Ambientes virtuais
+venv/
+.wv-ml-venv/
+.env
+.env.*
+
+# IDEs
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Dados e arquivos gerados
+output/
+*.json
+*.docx
+*.png
+*.jpg
+*.jpeg
+*.pdf
+
+# Dados brutos
+images/**
+
+# Logs e falhas
+falhas_ocr.txt
+
+# Kedro ou pipelines (se estiver usando)
+data/
+conf/
+catalog/
+
+# MLFlow e afins
+mlruns/
+mlartifacts/
+
+# Sistema
+.DS_Store
+Thumbs.db
