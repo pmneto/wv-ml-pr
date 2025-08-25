@@ -24,6 +24,7 @@ from PIL import Image
 # Config & paths
 
 PREFIX_RE = re.compile(r"^\d+_")
+NAT_RE = re.compile(r"\d+|\D+")
 
 
 
@@ -57,11 +58,17 @@ def ensure_lote_dir(lote: str) -> Path:
 def list_lotes() -> List[str]:
     return sorted([p.name for p in IMAGES_DIR.iterdir() if p.is_dir()])
 
+
+def _natural_key(s: str):
+    return [int(t) if t.isdigit() else t.lower() for t in NAT_RE.findall(s)]
+
 def list_images(lote: str) -> List[Path]:
     p = IMAGES_DIR / lote
     if not p.exists():
         return []
-    return sorted([f for f in p.iterdir() if f.suffix.lower() in {".png", ".jpg", ".jpeg"}])
+    imgs = [f for f in p.iterdir() if f.is_file() and f.suffix.lower() in {".png", ".jpg", ".jpeg"}]
+    imgs = [f for f in imgs if not f.name.startswith("__tmp__")]  # <<< evita meio-termo da renomeação
+    return sorted(imgs, key=lambda f: _natural_key(f.name))
 
 def save_uploads(lote: str, files):
     dest = ensure_lote_dir(lote)
@@ -231,38 +238,41 @@ def ensure_order_state(lote: str, imgs: list[Path]) -> pd.DataFrame:
 
 
 
-def apply_prefix_order(lote: str, df):
-    """
-    Renomeia arquivos do lote para NN_nome.ext, garantindo ordem no pipeline.
-    - remove prefixos numéricos existentes (ex: 001_...) antes de aplicar
-    - usa renomeação em dois passos para evitar conflitos
-    """
+def apply_prefix_order(lote: str, df: pd.DataFrame):
     base = IMAGES_DIR / lote
     df_sorted = df.sort_values("ordem").reset_index(drop=True)
-    width = max(3, len(str(len(df_sorted))))  # 001, 002...
+    width = max(3, len(str(len(df_sorted))))
 
-    # 1) normaliza nomes: remove prefixo numérico existente
     temp_norm = []
     for row in df_sorted.itertuples(index=False):
         src = base / row.arquivo
         if not src.exists():
             continue
-        clean_name = PREFIX_RE.sub("", src.name)  # tira "NNN_" se tiver
-        tmp = base / f"__tmpnorm__{clean_name}"
-        try:
-            src.rename(tmp)
-            temp_norm.append((tmp, clean_name))
-        except Exception as e:
-            st.error(f"Falha ao normalizar {src.name}: {e}")
+        clean_name = PREFIX_RE.sub("", src.name)
+        tmp = base / f"__tmp__{clean_name}"
+        src.rename(tmp)
+        temp_norm.append((tmp, clean_name))
 
-    # 2) aplica prefixos finais
+    new_names = []
     for i, (tmp, clean_name) in enumerate(temp_norm):
         prefix = str(i + 1).zfill(width)
         dst = base / f"{prefix}_{clean_name}"
-        try:
-            tmp.rename(dst)
-        except Exception as e:
-            st.error(f"Falha ao renomear {clean_name}: {e}")
+        tmp.rename(dst)
+        new_names.append(dst.name)
+
+    # Atualiza a ordem no estado para os NOVOS nomes (1..N)
+    order_key = get_order_state_key(lote)
+    st.session_state[order_key] = pd.DataFrame({
+        "arquivo": new_names,
+        "ordem": list(range(1, len(new_names) + 1))
+    })
+
+
+
+
+
+
+
 # UI
 st.sidebar.header("Sessão & Segurança")
 st.sidebar.caption("LGPD: por padrão **nada é persistido** em modo público, tudo é excluído no load da sessão.")
@@ -341,15 +351,15 @@ with colA:
                     edited = edited.sort_values("ordem").reset_index(drop=True)
                     st.session_state[get_order_state_key(lote_mng)] = edited
                     st.success("Ordem salva nesta sessão.")
-        #with col_ord_b:
-        #    if st.button("✅ Aplicar ordem (prefixos)", key=f"btn_apply_prefix__{lote_mng}"):
-        #        df_current = st.session_state.get(get_order_state_key(lote_mng))
-        #        if df_current is None or df_current.empty:
-        #            st.error("Defina a ordem primeiro.")
-        #        else:
-        #            apply_prefix_order(lote_mng, df_current)
-        #            st.success("Arquivos renomeados com prefixos numéricos.")
-        #            st.experimental_rerun()  # <<< força recarregar com os novos caminhos
+        with col_ord_b:
+            if st.button("✅ Aplicar ordem (prefixos)", key=f"btn_apply_prefix__{lote_mng}"):
+                df_current = st.session_state.get(get_order_state_key(lote_mng))
+                if df_current is None or df_current.empty:
+                    st.error("Defina a ordem primeiro.")
+                else:
+                    apply_prefix_order(lote_mng, df_current)
+                    st.success("Arquivos renomeados com prefixos numéricos.")
+                    st.rerun()  # <<< força recarregar com os novos caminhos
 
         # aplica ordem manual somente para PREVIEW
         name_to_order = {r.arquivo: r.ordem for r in st.session_state[get_order_state_key(lote_mng)].itertuples()}
@@ -385,6 +395,20 @@ with colB:
         lote_run = st.selectbox("Lote para processar", options=lotes, key="lote_run")
         mode_label = st.selectbox("Tipo de Documento", ["Impresso", "Manuscrito"], index=0, key="mode_sel")
         lang_label = st.selectbox("Idioma", ["Português 🇧🇷", "Inglês 🇺🇸", "Espanhol 🇪🇸", "Francês 🇫🇷"], index=0, key="lang_sel")
+
+        # NOVO: seleção de ordenação
+        order_choice = st.radio(
+            "Ordenar páginas por:",
+            ["Nome (prefixo 001_...)", "Data de modificação", "Data de criação"],
+            index=0,
+            key="order_choice"
+        )
+        order_map = {
+            "Nome (prefixo 001_...)": "name",
+            "Data de modificação ": "mtime",
+            "Data de criação": "ctime"
+        }
+
         if st.button("Processar ✅", key="btn_run"):
             if len(list_images(lote_run)) == 0:
                 st.error("Este lote não possui imagens.")
@@ -392,6 +416,7 @@ with colB:
                 rc = run_main(lote_run, mode_label, lang_label)
                 if rc == 0:
                     st.balloons()
+
 
     st.subheader("5) Resultados")
     if OUTPUT_DIR.exists():
