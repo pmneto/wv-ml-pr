@@ -4,14 +4,21 @@ from package.OpenAITextCorrector import OpenAITextCorrector
 from package.DocxExporter import DocxExporter
 from package.PipelineRunner import PipelineRunner
 
-
+import streamlit as st
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-AZURE_DOC_INTEL_ENDPOINT, AZURE_DOC_INTEL_KEY = os.environ['AZURE_DOC_INTEL_ENDPOINT'],os.environ['AZURE_DOC_INTEL_KEY']
+AZURE_DOC_INTEL_ENDPOINT = (
+    os.getenv("AZURE_DOC_INTEL_ENDPOINT") 
+    or st.secrets.get("AZURE_DOC_INTEL_ENDPOINT")
+)
+AZURE_DOC_INTEL_KEY = (
+    os.getenv("AZURE_DOC_INTEL_KEY") 
+    or st.secrets.get("AZURE_DOC_INTEL_KEY")
+)
 
 
 ocr = AzureOCRClient()

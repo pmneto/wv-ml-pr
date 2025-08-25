@@ -3,11 +3,12 @@ import json
 from openai import OpenAI
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
+import streamlit as st
 
 class OpenAITextCorrector:
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
         load_dotenv()
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
         self.model = model
         self.client = OpenAI(api_key=self.api_key)
         self.system_prompt = (
