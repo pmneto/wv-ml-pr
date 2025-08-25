@@ -16,12 +16,14 @@ class FileLoader:
             if f.is_file() and f.suffix.lower() in self.allowed_extensions
         ]
 
-    def list_files_sorted_by_metadata(self, sort_by: Literal["mtime", "size"] = "mtime", reverse: bool = False) -> List[Path]:
+    def list_files_sorted_by_metadata(self, sort_by: Literal["mtime", "size", "name"] = "mtime", reverse: bool = False) -> List[Path]:
         files = self.list_files()
 
         if sort_by == "mtime":
             return sorted(files, key=lambda f: f.stat().st_mtime, reverse=reverse)
         elif sort_by == "size":
             return sorted(files, key=lambda f: f.stat().st_size, reverse=reverse)
+        elif sort_by == "name":
+            return sorted(files, key=lambda f: f.name, reverse=reverse)
         else:
-            raise ValueError("Opção de ordenação inválida. Use 'mtime' ou 'size'.")
+            raise ValueError("Opção inválida. Use 'mtime', 'size' ou 'name'.")

@@ -18,5 +18,5 @@ ocr = AzureOCRClient()
 corrector = OpenAITextCorrector()
 exporter = DocxExporter("output")
 
-runner = PipelineRunner(ocr, corrector, exporter,base_dir='wv-ml-pr/images/')
+runner = PipelineRunner(ocr, corrector, exporter,base_dir='./images/')
 runner.run()
