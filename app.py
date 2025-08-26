@@ -420,9 +420,8 @@ with colB:
                             "Quer testar mais? Fale comigo 😉")
                 else:
                     rc = run_main(lote_run, mode, lang)
-                                rc = run_main(lote_run, mode_label, lang_label)
-                                if rc == 0:
-                                    st.balloons()
+                    if rc == 0:
+                       st.balloons()
 
 
     st.subheader("5) Resultados")
