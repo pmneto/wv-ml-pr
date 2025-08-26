@@ -60,15 +60,22 @@ def list_lotes() -> List[str]:
     return sorted([p.name for p in IMAGES_DIR.iterdir() if p.is_dir()])
 
 
-def _natural_key(s: str):
-    return [int(t) if t.isdigit() else t.lower() for t in NAT_RE.findall(s)]
+def _natural_key(name: str):
+    parts = NAT_RE.findall(name)
+    key = []
+    for p in parts:
+        if p.isdigit():
+            key.append((0, int(p)))
+        else:
+            key.append((1, p.lower()))
+    return key
 
 def list_images(lote: str) -> List[Path]:
     p = IMAGES_DIR / lote
     if not p.exists():
         return []
     imgs = [f for f in p.iterdir() if f.is_file() and f.suffix.lower() in {".png", ".jpg", ".jpeg"}]
-    imgs = [f for f in imgs if not f.name.startswith("__tmp__")]  # <<< evita meio-termo da renomeação
+    imgs = [f for f in imgs if not f.name.startswith("__tmp__")]
     return sorted(imgs, key=lambda f: _natural_key(f.name))
 
 def save_uploads(lote: str, files):
