@@ -419,7 +419,7 @@ with colB:
                     st.error(f"🚨 Limite de {MAX_PAGES_PER_RUN} páginas por execução. "
                             "Quer testar mais? Fale comigo 😉")
                 else:
-                    rc = run_main(lote_run, mode, lang)
+                    rc = run_main(lote_run, mode_label, lang_label)
                     if rc == 0:
                        st.balloons()
 
