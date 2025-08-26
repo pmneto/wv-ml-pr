@@ -1,5 +1,5 @@
 [server]
-maxUploadSize = 25     # MB por arquivo (ex.: 25)
-maxMessageSize = 200   # opcional: limite do payload no websocket (MB)
+maxUploadSize = 5     # MB por arquivo (ex.: 25)
+maxMessageSize = 20  # opcional: limite do payload no websocket (MB)
 runOnSave = false
 fileWatcherType = "none"
