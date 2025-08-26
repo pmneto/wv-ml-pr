@@ -25,6 +25,7 @@ from PIL import Image
 
 PREFIX_RE = re.compile(r"^\d+_")
 NAT_RE = re.compile(r"\d+|\D+")
+MAX_PAGES_PER_RUN = 10  # limite máximo
 
 
 
@@ -413,9 +414,15 @@ with colB:
             if len(list_images(lote_run)) == 0:
                 st.error("Este lote não possui imagens.")
             else:
-                rc = run_main(lote_run, mode_label, lang_label)
-                if rc == 0:
-                    st.balloons()
+                images = list_images(lote_run)
+                if len(images) > MAX_PAGES_PER_RUN:
+                    st.error(f"🚨 Limite de {MAX_PAGES_PER_RUN} páginas por execução. "
+                            "Quer testar mais? Fale comigo 😉")
+                else:
+                    rc = run_main(lote_run, mode, lang)
+                                rc = run_main(lote_run, mode_label, lang_label)
+                                if rc == 0:
+                                    st.balloons()
 
 
     st.subheader("5) Resultados")
